@@ -7,10 +7,68 @@ if (!function_exists('json_decode')) {
     throw new Exception('Beintoo needs the JSON PHP extension.');
 }
 
+class BeintooApiException extends Exception
+{
+  protected $result;
+
+  public function __construct($result) {
+    $this->result = $result;
+
+    $code = isset($result['error_code']) ? $result['error_code'] : 0;
+
+    if (isset($result['error_description'])) {
+      // OAuth 2.0 Draft 10 style
+      $msg = $result['error_description'];
+    } else if (isset($result['error']) && is_array($result['error'])) {
+      // OAuth 2.0 Draft 00 style
+      $msg = $result['error']['message'];
+    } else if (isset($result['error_msg'])) {
+      // Rest server style
+      $msg = $result['error_msg'];
+    } else {
+      $msg = 'Unknown Error. Check getResult()';
+    }
+
+    parent::__construct($msg, $code);
+  }
+
+  public function getResult() {
+    return $this->result;
+  }
+
+  public function getType() {
+    if (isset($this->result['error'])) {
+      $error = $this->result['error'];
+      if (is_string($error)) {
+        // OAuth 2.0 Draft 10 style
+        return $error;
+      } else if (is_array($error)) {
+        // OAuth 2.0 Draft 00 style
+        if (isset($error['type'])) {
+          return $error['type'];
+        }
+      }
+    }
+    return 'Exception';
+  }
+
+  public function __toString() {
+    $str = $this->getType() . ': ';
+    if ($this->code != 0) {
+      $str .= $this->code . ': ';
+    }
+    return $str . $this->message;
+  }
+}
+
+
+
 class BeintooRestClient {
     const VERSION = '0.1b';
-
-    var $debug = TRUE;
+    // developer config
+    var $debug = FALSE;   // if TRUE the class becomes very verbose
+    var $manage_exception = FALSE;   // if FALSE the class throws exceptions
+    //
     var $restserver_url_sandbox = "https://sandbox-elb.beintoo.com/api/rest/";
     var $restserver_url_production = "https://api.beintoo.com/api/rest/";
     var $restserver_url = "https://api.beintoo.com/api/rest/";
@@ -67,7 +125,7 @@ class BeintooRestClient {
         }
     }
 
-    protected function _get($url, $gets=NULL, $headers=NULL) {
+    protected function _get($url, $gets=NULL, $headers=NULL)  {
         $start = microtime(TRUE);
         $all_headers = array_merge($headers, BeintooRestClient::$CURL_OPTS[CURLOPT_HTTPHEADER]);
 
@@ -80,16 +138,41 @@ class BeintooRestClient {
             var_dump($all_headers);
         }
         $process = curl_init($url);
-
         curl_setopt_array($process, BeintooRestClient::$CURL_OPTS);
         curl_setopt($process, CURLOPT_HTTPHEADER, $all_headers);
-        $return = curl_exec($process);
-        curl_close($process);
-        $return = json_decode($return);
+
+        if (!$result = curl_exec($process)) {
+            trigger_error(curl_error($process));
+            throw new FacebookApiException($result);
+        }
+        $httpCode = curl_getinfo($process, CURLINFO_HTTP_CODE);
+
+
         $stop = microtime(TRUE);
         if ($this->debug == TRUE)
             print_r(" TIME " . ($stop - $start));
-        return $return;
+        if ($result === false || $httpCode!=200) {
+            $e = new BeintooApiException(array(
+                        'error_code' => curl_errno($ch),
+                        'error' => array(
+                            'message' => curl_error($ch),
+                            'type' => 'CurlException',
+                        ),
+                    ));
+            curl_close($ch);
+            throw $e;
+        }
+
+        if (is_array($result) && isset($result['error_code'])) {
+            curl_close($ch);
+            throw new BeintooApiException($result);
+        }
+
+ 
+        curl_close($process);
+        $result = json_decode($result);
+
+        return $result;
     }
 
     protected function _post($url, $data=NULL, $headers=NULL) {
@@ -143,7 +226,10 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
             }
         }
         return $reply;
@@ -169,8 +255,12 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
             }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+            
         }
         return $reply;
     }
@@ -190,13 +280,17 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
             }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+            
         }
         return $reply;
     }
 
-    function user_setuser($guid, $email, $address, $country, $gender, $nickname, $name,$password,$sendGreetingsEmail,$imageURL) {
+    function user_setuser($guid, $email, $address, $country, $gender, $nickname, $name,$password,$sendGreetingsEmail,$imageURL,$language) {
         try {
             if ($this->apikey != NULL)
                 $params_header[] = 'apikey: ' . $this->apikey;
@@ -220,9 +314,10 @@ class BeintooRestClient {
                 $params_get["sendGreetingsEmail"] = $sendGreetingsEmail;
             if (isset($password) && $password != NULL)
                 $params_get["password"] = $password;
+            if (isset($language) && $language != NULL)
+                $params_get["language"] = $language;
             if (isset($imageURL) && $imageURL != NULL)
                 $params_get["imageURL"] = $imageURL;
-
 
             $reply = $this->_post($this->restserver_url . $this->user_resource . "/set",
                             $params_get,
@@ -234,7 +329,10 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
             }
         }
         return $reply;
@@ -279,7 +377,10 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
             }
         }
         return $reply;
@@ -320,7 +421,10 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
             }
         }
         return $reply;
@@ -356,8 +460,11 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
                 var_dump($e);
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
             }
         }
         return $reply;
@@ -369,19 +476,18 @@ class BeintooRestClient {
 
             if (isset($this->apikey))
                 $params_header[] = 'apikey: ' . $this->apikey;
-            if (isset($latitude)) {
+            if (isset($latitude) && $latitude!=NULL ) {
                 $params_get["latitude"] = $latitude;
             }
-            if (isset($longitude)) {
+            if (isset($longitude) && $longitude!=NULL  ) {
                 $params_get["longitude"] = $longitude;
             }
-            if (isset($radius)) {
+            if (isset($radius) && $radius!=NULL ) {
                 $params_get["radius"] = $radius;
             }
-            if (isset($onlyVgooded)) {
+            if (isset($onlyVgooded) && $onlyVgooded!=NULL && ($onlyVgooded==TRUE || $onlyVgooded==FALSE) ) {
                 $params_get["onlyVgooded"] = $onlyVgooded;
             }
-            $params_get["language"] = 1;
             //var_dump($params_get);
             $reply = $this->_get($this->restserver_url . $this->vgood_resource . "/checkin/places/" . $userExt,
                             $params_get,
@@ -390,7 +496,10 @@ class BeintooRestClient {
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
             }
         }
         return $reply;
@@ -497,7 +606,10 @@ EOT;
         } catch (Exception $e) {
             error_log($e->getMessage());
             if ($this->debug) {
-                var_dump($expression);
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
             }
         }
         return $reply;

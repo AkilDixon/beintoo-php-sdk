@@ -102,6 +102,7 @@ if (isset($_GET['action']))
         $response=$client->player_login($guid,$userExt);
 
     }
+
     if (strcmp($action,"app_topscore")==0) {
         $response=$client->app_topscore($guid,$_GET['rows']);
 
@@ -205,7 +206,17 @@ if (isset($_GET['action']))
                           echo $value->user->name." ".$value->playerScore->bestscore."<br/>";
                       }*/
             }
+    if (strcmp($action,"player_login_exp")==0) {
+        $client_exp=new BeintooRestClient("oqiaudfosdijfsvlfzxjvnc_ERROR_API_KEY",$sandbox);
+        try {
+        $response=$client_exp->player_login("123null","123null");
+        } catch (BeintooApiException $e) {
+            print("<br/>catching excep<br/>");
+            var_export($e);
+             print("<br/>=================<br/>");
 
+        }
+    }
         echo "<hr/>";
         if (isset($response)) {
             echo "RESPONSE TO $action :<br/>";
@@ -345,6 +356,17 @@ if (isset($_GET['action']))
         gender: <input type="radio" name="gender" value="1" /> Male    <input type="radio" name="gender" value="2" checked /> Female <input type="radio" name="gender" value="" /> None<br /><br />
 
         <input type="submit" name="action" value="user_setuser"  /><br /><br />
+    </form>
+              </div>
+
+                             <hr/>
+    <div class="box"> <h3>generate an error</h3><br /><br />
+
+    <form name="input" action="demo.php" method="get">
+        <br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+
+        <input type="submit" name="action" value="player_login_exp"  /><br /><br />
     </form>
               </div>
   </body>
