@@ -40,7 +40,12 @@ if (isset($_GET['userExt'])) {
 }
 
 if (isset($guid) && !isset($_GET['userExt'])) {
+    try {
+    $response = $client->player_login($guid, null);
     $response = $client->player_getplayer_byguid($guid);
+    } catch (Exception $e ) {
+        print_r("maybe guid is not yet created in beintoo...");
+    }
     if (isset($response->user)) {
         $_SESSION['userExt'] = $response->user;
     }
@@ -67,14 +72,26 @@ if (isset($_GET['action']))
 /// ALL RESPONSES
 
 
-    if (strcmp($action,"vgood_getvood_byguid")==0) {
-          $response=$client->vgood_getvood_byguid($_GET['codeID'],$guid,
+    if (strcmp($action,"vgood_getvgood_byguid")==0) {
+          $response=$client->vgood_getvgood_byguid($_GET['codeID'],$guid,
                   $_GET['latitude'],$_GET['longitude'],$_GET['radius'],$_REQUEST['REMOTE_ADDR']);
 
     }
-    if (strcmp($action,"vgood_getvood_byuser")==0) {
-          $response=$client->vgood_getvood_byuser($_GET['codeID'],$userExt,
+
+    if (strcmp($action,"vgood_getvgood_byguid_multiple")==0) {
+          $response=$client->vgood_getvgood_byguid_multiple($_GET['codeID'],$guid,
+                  $_GET['latitude'],$_GET['longitude'],$_GET['radius'],$_GET['rows'],$_REQUEST['REMOTE_ADDR']);
+
+    }
+    if (strcmp($action,"vgood_getvgood_byuser")==0) {
+          $response=$client->vgood_getvgood_byuser($_GET['codeID'],$userExt,
                   $_GET['latitude'],$_GET['longitude'],$_GET['radius'],$_REQUEST['REMOTE_ADDR']);
+
+    }
+
+    if (strcmp($action,"vgood_getvgood_byuser_multiple")==0) {
+          $response=$client->vgood_getvgood_byuser_multiple($_GET['codeID'],$userExt,
+                  $_GET['latitude'],$_GET['longitude'],$_GET['radius'],$_GET['rows'],$_REQUEST['REMOTE_ADDR']);
 
     }
 
@@ -82,6 +99,10 @@ if (isset($_GET['action']))
           $response=$client->beta_checkin_places($userExt,
                   $_GET['latitude'],$_GET['longitude'],$_GET['radius'],true);
 
+    }
+
+    if (strcmp($action,"vgood_assign")==0) {
+          $response=$client->vgood_assign($_GET['codeID'], $_GET['userExt'], $_GET['vgoodExt']);
     }
 
     if (strcmp($action,"player_getplayer_byguid")==0) {
@@ -189,12 +210,29 @@ if (isset($_GET['action']))
             echo "</tr></table>";
            echo "<br/>";
         }
-            if (strcmp($action,"vgood_getvood_byguid")==0 && isset($response->id)) {
+            if (strcmp($action,"vgood_getvgood_byguid")==0 && isset($response->id)) {
                         echo "<hr/>";
                         echo"<h2>YOU WON THIS VGOOD</h2>";
                         $client->render_vgood($response,FALSE);
             }
-               if (strcmp($action,"vgood_getvood_byuser")==0 && isset($response->id)) {
+            if (strcmp($action,"vgood_getvgood_byguid_multiple")==0 && isset($response->vgoods)) {
+                        echo "<hr/>";
+                        echo"<h2>CHOOSE A VGOOD HERE:</h2>";
+                        foreach ($response->vgoods as $key=> $value) {
+                            $client->render_vgood($value,FALSE);
+                            
+                        }
+            }
+            if (strcmp($action,"vgood_getvgood_byuser_multiple")==0 && isset($response->vgoods)) {
+                        echo "<hr/>";
+                        echo"<h2>CHOOSE A VGOOD HERE:</h2>";
+                        foreach ($response->vgoods as $key=> $value) {
+                            $client->render_vgood($value,FALSE);
+                            $STRURL= "demo.php?action=vgood_assign?sandbox=".$_GET['sandbox']."&userExt=".$_GET['userExt']."&vgoodExt=".$value->id;
+                            echo "<a href='$STRURL' >Accept via API</a><br/>";
+                        }
+            }
+               if (strcmp($action,"vgood_getvgood_byuser")==0 && isset($response->id)) {
                         echo "<hr/>";
                         echo"<h2>YOU WON THIS VGOOD</h2>";
                         $client->render_vgood($response,FALSE);
@@ -250,9 +288,9 @@ if (isset($_GET['action']))
     </form>
       </div>
         <hr/>
-              <div class="box"> <h3>vgood_getvood_byguid</h3><br /><br />
+              <div class="box"> <h3>vgood_getvgood_byguid</h3><br /><br />
 
-     vgood_getvood_byguid<br />
+     vgood_getvgood_byguid<br />
      <div id="map_canvas" style="width: 500px; height: 300px"></div>
     <div id="message"></div>
 
@@ -264,13 +302,15 @@ if (isset($_GET['action']))
         Radius: <input id="l3"  type="text" name="radius" value="1000" /><br /><br />
         Player: <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
-        <input type="submit" name="action" value="vgood_getvood_byguid"  /><br /><br />
+        rows: <input type="text" name="rows" value="3" /><br /><br />
+        <input type="submit" name="action" value="vgood_getvgood_byguid"  /><br /><br />
+        <input type="submit" name="action" value="vgood_getvgood_byguid_multiple"  /><br /><br />
     </form>
      </div>
         <hr/>
-    <div class="box"> <h3>vgood_getvood_byuser</h3><br /><br />
+    <div class="box"> <h3>vgood_getvgood_byuser</h3><br /><br />
 
-     vgood_getvood_byuser<br />
+     vgood_getvgood_byuser<br />
   
     <form name="input" action="demo.php" method="get">
         <br /><br />
@@ -280,8 +320,10 @@ if (isset($_GET['action']))
         Radius: <input id="l3"  type="text" name="radius" value="1000" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
         User: <input type="text" name="userExt" value="<?php if (isset($_SESSION['userExt'])) echo  $_SESSION['userExt']->id; ?>" /><br /><br />
+        rows: <input type="text" name="rows" value="3" /><br /><br />
 
-        <input type="submit" name="action" value="vgood_getvood_byuser"  /><br /><br />
+        <input type="submit" name="action" value="vgood_getvgood_byuser_multiple"  /><br /><br />
+        <input type="submit" name="action" value="vgood_getvgood_byuser"  /><br /><br />
     </form>
      </div>
         <hr/>

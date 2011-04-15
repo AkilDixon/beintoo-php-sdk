@@ -14,11 +14,11 @@ class BeintooApiException extends Exception
   public function __construct($result) {
     $this->result = $result;
 
-    $code = isset($result['error_code']) ? $result['error_code'] : 0;
+    $code = isset($result['messageID']) ? $result['messageID'] : 0;
 
-    if (isset($result['error_description'])) {
+    if (isset($result['message'])) {
       // OAuth 2.0 Draft 10 style
-      $msg = $result['error_description'];
+      $msg = $result['message'];
     } else if (isset($result['error']) && is_array($result['error'])) {
       // OAuth 2.0 Draft 00 style
       $msg = $result['error']['message'];
@@ -26,7 +26,7 @@ class BeintooApiException extends Exception
       // Rest server style
       $msg = $result['error_msg'];
     } else {
-      $msg = 'Unknown Error. Check getResult()';
+      $msg = 'Unknown Error: '.var_export($result,true);
     }
 
     parent::__construct($msg, $code);
@@ -66,7 +66,7 @@ class BeintooApiException extends Exception
 class BeintooRestClient {
     const VERSION = '0.1b';
     // developer config
-    var $debug = FALSE;   // if TRUE the class becomes very verbose
+    var $debug = TRUE;   // if TRUE the class becomes very verbose
     var $manage_exception = FALSE;   // if FALSE the class throws exceptions
     //
     var $restserver_url_sandbox = "https://sandbox-elb.beintoo.com/api/rest/";
@@ -143,28 +143,29 @@ class BeintooRestClient {
 
         if (!$result = curl_exec($process)) {
             trigger_error(curl_error($process));
-            throw new FacebookApiException($result);
+            throw new BeintooApiException($result);
         }
         $httpCode = curl_getinfo($process, CURLINFO_HTTP_CODE);
 
 
         $stop = microtime(TRUE);
         if ($this->debug == TRUE)
-            print_r(" TIME " . ($stop - $start));
+            print_r(" TIME " . ($stop - $start)." CODE:".$httpCode);
+
         if ($result === false || $httpCode!=200) {
             $e = new BeintooApiException(array(
-                        'error_code' => curl_errno($ch),
+                        'error_code' => curl_errno($process),
                         'error' => array(
-                            'message' => curl_error($ch),
+                            'message' => curl_error($process),
                             'type' => 'CurlException',
                         ),
                     ));
-            curl_close($ch);
+            curl_close($process);
             throw $e;
         }
 
         if (is_array($result) && isset($result['error_code'])) {
-            curl_close($ch);
+            curl_close($process);
             throw new BeintooApiException($result);
         }
 
@@ -205,11 +206,11 @@ class BeintooRestClient {
      */
     function player_login($guid, $userExt, $publicname=NULL) {
         try {
-            if ($this->apikey != NULL)
+            if (isset($this->apikey) && $this->apikey != NULL)
                 $params_header[] = 'apikey: ' . $this->apikey;
-            if ($userExt != NULL)
+            if (isset($userExt) && $userExt != NULL)
                 $params_header[] = 'userExt: ' . $userExt;
-            if ($guid != NULL)
+            if ( isset($guid) && $guid != NULL)
                 $params_header[] = 'guid: ' . $guid;
             // TODO move this in parameters
             $params_get["language"] = 1;
@@ -237,9 +238,9 @@ class BeintooRestClient {
 
     function player_logout($guid) {
         try {
-            if ($this->apikey != NULL)
+            if (isset( $this->apikey) && $this->apikey != NULL)
                 $params_header[] = 'apikey: ' . $this->apikey;
-            if ($guid != NULL)
+            if (isset($guid) && $guid != NULL)
                 $params_header[] = 'guid: ' . $guid;
 
 
@@ -345,17 +346,17 @@ class BeintooRestClient {
 
             if (isset($this->apikey))
                 $params_header[] = 'apikey: ' . $this->apikey;
-            if (isset($guid))
+            if (isset($guid) && $guid != NULL)
                 $params_header[] = 'guid: ' . $guid;
-            if (isset($codeID))
+            if (isset($codeID) && $codeID!=NULL)
                 $params_header[] = 'codeID: ' . $codeID;
             if (isset($ip_address) && $ip_address!=null)
                 $params_header[] = 'ipAddr: ' . $ip_address;
 
-            if (isset($lastScore)) {
+            if (isset($lastScore) && $lastScore != NULL) {
                 $params_get["lastScore"] = $lastScore;
             }
-            if (isset($balance)) {
+            if (isset($balance) && $balance != NULL) {
                 $params_get["balance"] = $balance;
             }
 
@@ -385,22 +386,99 @@ class BeintooRestClient {
         }
         return $reply;
     }
-
-    function vgood_getvood_byguid($codeID, $guid, $latitude=NULL, $longitude=NULL, $radius=NULL, $ip_address=NULL) {
+    function vgood_getvgood_byguid_multiple($codeID, $guid, $latitude=NULL, $longitude=NULL, $radius=NULL, $rows=NULL, $ip_address=NULL) {
 
         try {
 
             if (isset($this->apikey))
                 $params_header[] = 'apikey: ' . $this->apikey;
             if ($guid == NULL) {
-                                echo " 1 THERE IS A PROBLEM IN GUID";
-                return NULL;
+                $result['error_msg']="NO GUID";
+                throw new BeintooApiException($result);
             }
-            if (isset($codeID))
+            if (isset($codeID)  && $codeID != NULL)
                 $params_header[] = 'codeID: ' . $codeID;
-            if (isset($guid))
+            if (isset($guid) && $guid != NULL)
                 $params_header[] = 'guid: ' . $guid;
-            if (isset($ip_address))
+            if (isset($ip_address) && $ip_address != NULL)
+                $params_header[] = 'ipAddr: ' . $ip_address;
+
+            if (isset($latitude) && $latitude!=NULL ) {
+                $params_get["latitude"] = $latitude;
+            }
+            if (isset($longitude) && $longitude!=NULL ) {
+                $params_get["longitude"] = $longitude;
+            }
+            if (isset($radius) && $radius!=NULL ) {
+                $params_get["radius"] = $radius;
+            }
+            if (isset($rows) && $rows!=NULL ) {
+                $params_get["rows"] = $rows;
+            }
+            //var_dump($params_get);
+            $reply = $this->_get($this->restserver_url . $this->vgood_resource . "/byguid/" . $guid,
+                            $params_get,
+                            $params_header
+            );
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }
+
+    function vgood_assign($codeID,$userExt, $vgoodExt) {
+      try {
+            if (isset($this->apikey) && $this->apikey!=NULL)
+                $params_header[] = 'apikey: ' . $this->apikey;
+            if (!isset($userExt) || $userExt == NULL) {
+                $result['error_msg']="NO USEREXT";
+                throw new BeintooApiException($result);
+                }
+             if (!isset($vgoodExt) ||  $vgoodExt == NULL) {
+                $result['error_msg']="NO VGOODEXT";
+                throw new BeintooApiException($result);
+                }
+                if (isset($codeID) && $codeID!=NULL)
+                $params_header[] = 'codeID: ' . $codeID;
+
+            $reply = $this->_get($this->restserver_url . $this->vgood_resource . "/accept/".$vgoodExt."/"  . $userExt,
+                            $params_get,
+                            NULL);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            error_log(var_export($e,true));
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }
+
+
+    function vgood_getvgood_byguid($codeID, $guid, $latitude=NULL, $longitude=NULL, $radius=NULL, $ip_address=NULL) {
+
+        try {
+
+            if (isset($this->apikey))
+                $params_header[] = 'apikey: ' . $this->apikey;
+            if ($guid == NULL) {
+                $result['error_msg']="NO GUID";
+                throw new BeintooApiException($result);
+            }
+            if (isset($codeID) && $codeID!=NULL)
+                $params_header[] = 'codeID: ' . $codeID;
+            if (isset($guid) && $guid !=NULL)
+                $params_header[] = 'guid: ' . $guid;
+            if (isset($ip_address) && $ip_address!=NULL)
                 $params_header[] = 'ipAddr: ' . $ip_address;
 
             if (isset($latitude) && $latitude!=NULL ) {
@@ -430,16 +508,17 @@ class BeintooRestClient {
         return $reply;
     }
 
-    function vgood_getvood_byuser($codeID, $userExt, $latitude=NULL, $longitude=NULL, $radius=NULL, $ip_address=NULL) {
+    function vgood_getvgood_byuser($codeID, $userExt, $latitude=NULL, $longitude=NULL, $radius=NULL, $ip_address=NULL) {
 
         try {
 
             if (isset($this->apikey))
                 $params_header[] = 'apikey: ' . $this->apikey;
             if ($userExt == NULL) {
-                return NULL;
-            }
-            if (isset($codeID))
+                $result['error_msg']="NO USEREXT";
+                throw new BeintooApiException($result);
+                }
+            if (isset($codeID) && $codeID!=NULL)
                 $params_header[] = 'codeID: ' . $codeID;
 
             if (isset($latitude) && $latitude!=NULL ) {
@@ -452,15 +531,14 @@ class BeintooRestClient {
                 $params_get["radius"] = $radius;
             }
             $params_get["language"] = 1;
-            //var_dump($params_get);
             $reply = $this->_get($this->restserver_url . $this->vgood_resource . "/get/byuser/" . $userExt,
                             $params_get,
                             $params_header
             );
         } catch (Exception $e) {
             error_log($e->getMessage());
+            error_log(var_export($e,true));
             if ($this->debug) {
-                var_dump($e);
                 var_dump($e);
             }
             if (!$this->manage_exception) {
@@ -469,6 +547,50 @@ class BeintooRestClient {
         }
         return $reply;
     }
+
+
+    function vgood_getvgood_byuser_multiple($codeID, $userExt, $latitude=NULL, $longitude=NULL, $radius=NULL, $rows=NULL,$ip_address=NULL) {
+
+        try {
+
+            if (isset($this->apikey))
+                $params_header[] = 'apikey: ' . $this->apikey;
+            if ($userExt == NULL) {
+                $result['error_msg']="NO USEREXT";
+                throw new BeintooApiException($result);
+                }
+            if (isset($codeID) && $codeID!=NULL)
+                $params_header[] = 'codeID: ' . $codeID;
+
+            if (isset($latitude) && $latitude!=NULL ) {
+                $params_get["latitude"] = $latitude;
+            }
+            if (isset($longitude) && $longitude!=NULL ) {
+                $params_get["longitude"] = $longitude;
+            }
+            if (isset($radius) && $radius!=NULL ) {
+                $params_get["radius"] = $radius;
+            }
+            if (isset($rows) && $rows!=NULL ) {
+                $params_get["rows"] = $rows;
+            }
+            $reply = $this->_get($this->restserver_url . $this->vgood_resource . "/byuser/" . $userExt,
+                            $params_get,
+                            $params_header
+            );
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            error_log(var_export($e,true));
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }
+
 
     function beta_checkin_places($userExt, $latitude=NULL, $longitude=NULL, $radius=NULL, $onlyVgooded=true) {
 
@@ -589,7 +711,7 @@ EOT;
 
     function app_topscore($codeID=NULL, $rows=20) {
         try {
-            if (isset($this->apikey))
+            if (isset($this->apikey)  && $this->apikey!=NULL )
                 $params_header[] = 'apikey: ' . $this->apikey;
             if (isset($codeID))
                 $params_header[] = 'codeID: ' . $codeID;
