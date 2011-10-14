@@ -25,7 +25,7 @@ require_once 'variables.php';
     $sandbox = false;
 if (isset($_GET['sandbox']))
     $sandbox = true;
-
+ 
 $client = new BeintooRestClient($apikey, $sandbox);
 
 $action = "player_login";
@@ -71,7 +71,7 @@ if (isset($_GET['action']))
 
 /// ALL RESPONSES
 
-
+try {
     if (strcmp($action,"vgood_getvgood_byguid")==0) {
           $response=$client->vgood_getvgood_byguid($_GET['codeID'],$guid,
                   $_GET['latitude'],$_GET['longitude'],$_GET['radius'],$_REQUEST['REMOTE_ADDR']);
@@ -123,7 +123,13 @@ if (isset($_GET['action']))
         $response=$client->player_login($guid,$userExt);
 
     }
-
+    if (strcmp($action,"achievement_get")==0) {
+        $response=$client->achievement_get($guid);
+    }
+    if (strcmp($action,"achievement_update")==0) {
+        $response=$client->achievement_update($_GET['achievementExt'], $guid, 
+                $_GET['percentage'], $_GET['value'], $_GET['increment']);
+    }
     if (strcmp($action,"app_topscore")==0) {
         $response=$client->app_topscore($guid,$_GET['rows']);
 
@@ -133,67 +139,106 @@ if (isset($_GET['action']))
                 $_GET['address'], $_GET['country'], $_GET['gender'], $_GET['nickname'], $_GET['name'],
                  $_GET['password'], $_GET['sendGreetingsEmail'], $_GET['imageURL']
                 );
-
+    }
+    } catch (Exception $e ) {
+        $response='<div id="error">'.print_r($e,true).'</div>';
+        
     }
 
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
-  <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
-    <title>phpSDK DEMO </title>
-   <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=ABQIAAAAlW1NVMthfyCA6IHAwPF0BBQ2DYW8yFv6V-5ywl80faskaNRB-hRrcA_y-0pnC4RS0VcSH1Mthb_0mA"
-            type="text/javascript">
-    </script>
-    <script type="text/javascript">
-
-    function MyApplication() {
-      this.counter = 0;
-      this.map = new GMap2(document.getElementById("map_canvas"));
-      this.map.setCenter(new GLatLng(40.7219, -73.93), 5);
-      var myEventListener = GEvent.bind(this.map, "click", this, function(overlay, latlng) {
-
-           if (latlng) {
-             //this.map.addOverlay(new GMarker(latlng));
-            // this.counter++;
-
-             var locDiv = document.getElementById("message");
-             //locDiv.innerHTML = "cooridnates lng: "+latlng.lng()+"lat"+latlng.lat();
-             var locinputlat = document.getElementById("l1");
-             var locinputlong = document.getElementById("l2");
-             locinputlong.value=latlng.lng();
-             locinputlat.value=latlng.lat();
-              locinputlat = document.getElementById("lu1");
-              locinputlong = document.getElementById("lu2");
-             locinputlong.value=latlng.lng();
-             locinputlat.value=latlng.lat();
-              locinputlat = document.getElementById("lcp1");
-              locinputlong = document.getElementById("lcp2");
-             locinputlong.value=latlng.lng();
-             locinputlat.value=latlng.lat();
-
-           } //else if (overlay instanceof GMarker) {
-             // This code is never executed as the event listener is
-             // removed the second time this event is triggered
-           //  this.removeOverlay(marker)
-           //}
-
-         //  GEvent.removeListener(myEventListener);
-
-      });
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+        <title>phpSDK DEMO </title>
+        <link type="text/css" rel="stylesheet" href="http://fonts.googleapis.com/css?family=Rokkitt:400,700" />
+                  
+        <style type="text/css">
+            body {
+                font-family:'Rokkitt', serif;
+                
+            }
+            body h1 {
+                font-family:'Rokkitt', serif;
+                
+            }
+            body h3 {
+                font-family:'Rokkitt', serif;
+                margin-top: 0.2px;
+                margin-bottom: 0.2px;
+               
+                
+            }
+    .forms {
+            /*width: 100%;*/
+            height: 400px;
+             }
+    .forms div {
+            height: 30px;
+            overflow: hidden;}
+    forms:hover div {
+            height: 30px; }
+    .forms:hover div:hover {
+            height: 100%;
+            overflow: auto;
+            background-color: powderblue;
     }
-
-    function initialize() {
-      var application = new MyApplication();
-    }
-
-    </script>
-  </head>
+    
+    
+        </style>
+        
+        <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=ABQIAAAA-tGr7DUhZW89xOR4B-FgUBSM7sJmFEfZGjzj5QpXzPaO65DaiRTi_a6XoH4WNSNCshIL0p-Lb4abkg"
+                type="text/javascript">
+        </script>
+        <script type="text/javascript">
+        
+            function MyApplication() {
+                this.counter = 0;
+                this.map = new GMap2(document.getElementById("map_canvas"));
+                this.map.setCenter(new GLatLng(40.7219, -73.93), 5);
+                var myEventListener = GEvent.bind(this.map, "click", this, function(overlay, latlng) {
+                
+                    if (latlng) {
+                        //this.map.addOverlay(new GMarker(latlng));
+                        // this.counter++;
+                    
+                        var locDiv = document.getElementById("message");
+                        //locDiv.innerHTML = "cooridnates lng: "+latlng.lng()+"lat"+latlng.lat();
+                        var locinputlat = document.getElementById("l1");
+                        var locinputlong = document.getElementById("l2");
+                        locinputlong.value=latlng.lng();
+                        locinputlat.value=latlng.lat();
+                        locinputlat = document.getElementById("lu1");
+                        locinputlong = document.getElementById("lu2");
+                        locinputlong.value=latlng.lng();
+                        locinputlat.value=latlng.lat();
+                        locinputlat = document.getElementById("lcp1");
+                        locinputlong = document.getElementById("lcp2");
+                        locinputlong.value=latlng.lng();
+                        locinputlat.value=latlng.lat();
+                    
+                    } //else if (overlay instanceof GMarker) {
+                    // This code is never executed as the event listener is
+                    // removed the second time this event is triggered
+                    //  this.removeOverlay(marker)
+                    //}
+                
+                    //  GEvent.removeListener(myEventListener);
+                
+                });
+            }
+        
+            function initialize() {
+                var application = new MyApplication();
+            }
+        
+        </script>
+    </head>
 
   <body   onload="initialize()" >
 
-      <H1> PHP DEMO</H1>
-
+      <h1> BEINTOO PHP DEMO</h1>
+      <p id ="description">this demo shows you how API call works.</p>
       <?php
       echo " <hr/>";
 
@@ -213,29 +258,30 @@ if (isset($_GET['action']))
             if (strcmp($action,"vgood_getvgood_byguid")==0 && isset($response->id)) {
                         echo "<hr/>";
                         echo"<h2>YOU WON THIS VGOOD</h2>";
-                        $client->render_vgood($response,FALSE);
+                        $client->render_vgood($response);
             }
             if (strcmp($action,"vgood_getvgood_byguid_multiple")==0 && isset($response->vgoods)) {
                         echo "<hr/>";
                         echo"<h2>CHOOSE A VGOOD HERE:</h2>";
                         foreach ($response->vgoods as $key=> $value) {
-                            $client->render_vgood($value,FALSE);
-                            
+                            //$client->render_vgood($value,FALSE);
+                            echo "<a href='$value->getRealURL'>".$value->name."</a><br/>";
                         }
             }
             if (strcmp($action,"vgood_getvgood_byuser_multiple")==0 && isset($response->vgoods)) {
                         echo "<hr/>";
                         echo"<h2>CHOOSE A VGOOD HERE:</h2>";
                         foreach ($response->vgoods as $key=> $value) {
-                            $client->render_vgood($value,FALSE);
+                            //$client->render_vgood($value,FALSE);
                             $STRURL= "demo.php?action=vgood_assign?sandbox=".$_GET['sandbox']."&userExt=".$_GET['userExt']."&vgoodExt=".$value->id;
+                            echo "<a href='$value->getRealURL'>".$value->name."</a><br/>";
                             echo "<a href='$STRURL' >Accept via API</a><br/>";
                         }
             }
                if (strcmp($action,"vgood_getvgood_byuser")==0 && isset($response->id)) {
                         echo "<hr/>";
                         echo"<h2>YOU WON THIS VGOOD</h2>";
-                        $client->render_vgood($response,FALSE);
+                        $client->render_vgood($response);
             }
            if (strcmp($action,"app_topscore")==0 ) {
                         echo "<hr/>";
@@ -264,6 +310,16 @@ if (isset($_GET['action']))
 
             }
       ?>
+           <div id="map_canvas" style="width: 500px; height: 300px"></div>
+    <div id="message"></div>
+    <br /><br />
+    <form action="#" >
+         Latitude: <input   id="lcp1"  type="text" name="latitude" /><br /><br />
+        Longitude: <input  id="lcp2"   type="text" name="longitude" /><br /><br />
+ </form>
+    
+      <div class="forms" >
+          <p id="description">select an api call.</p>
       <hr/>
       <div class="box"> <h3>clear all</h3><br />
     <form name="input" action="demo.php" method="get">
@@ -290,9 +346,7 @@ if (isset($_GET['action']))
         <hr/>
               <div class="box"> <h3>vgood_getvgood_byguid</h3><br /><br />
 
-     vgood_getvgood_byguid<br />
-     <div id="map_canvas" style="width: 500px; height: 300px"></div>
-    <div id="message"></div>
+
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
@@ -310,7 +364,6 @@ if (isset($_GET['action']))
         <hr/>
     <div class="box"> <h3>vgood_getvgood_byuser</h3><br /><br />
 
-     vgood_getvgood_byuser<br />
   
     <form name="input" action="demo.php" method="get">
         <br /><br />
@@ -327,23 +380,8 @@ if (isset($_GET['action']))
     </form>
      </div>
         <hr/>
-            <div class="box"> <h3>beta_checkin_places</h3><br /><br />
 
-     beta_checkin_places<br />
-
-    <form name="input" action="demo.php" method="get">
-        <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
-        Latitude: <input id="lcp1" type="text" name="latitude" /><br /><br />
-        Longitude: <input id="lcp2"  type="text" name="longitude" /><br /><br />
-        Radius: <input id="l3"  type="text" name="radius" value="1000" /><br /><br />
-        apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
-        User: <input type="text" name="userExt" value="<?php if (isset($_SESSION['userExt'])) echo  $_SESSION['userExt']->id; ?>" /><br /><br />
-
-        <input type="submit" name="action" value="beta_checkin_places"  /><br /><br />
-    </form>
-     </div>
-        <hr/>
+        
               <div class="box"> <h3>player_getplayer_byguid</h3><br /><br />
 
     <form name="input" action="demo.php" method="get">
@@ -379,7 +417,35 @@ if (isset($_GET['action']))
         <input type="submit" name="action" value="player_login"  /><br /><br />
     </form>
               </div>
-               <hr/>
+        <hr/>
+              <div class="box"> <h3>achievement_get</h3><br /><br />
+
+    <form name="input" action="demo.php" method="get">
+        <br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Player: <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
+        apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
+
+        <input type="submit" name="action" value="achievement_get"  /><br /><br />
+    </form>
+              </div>
+        <hr/>
+              <div class="box"> <h3>achievement_update</h3><br /><br />
+
+    <form name="input" action="demo.php" method="get">
+        <br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Player: <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
+        apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
+        achievement_id: <input   type="text" name="achievementExt" value="" /><br /><br />
+        percentage: <input   type="text" name="percentage" value="5" /><br /><br />
+        value: <input   type="text" name="value" value="20" /><br /><br />
+        increment (boolean): <input   type="text" name="increment" value="false" /><br /><br />
+        (please set value OR percentage)<br/>
+        <input type="submit" name="action" value="achievement_update"  /><br /><br />
+    </form>
+              </div>
+        <hr/>
               <div class="box"> <h3>user_setuser</h3><br /><br />
 
     <form name="input" action="demo.php" method="get">
@@ -411,5 +477,7 @@ if (isset($_GET['action']))
         <input type="submit" name="action" value="player_login_exp"  /><br /><br />
     </form>
               </div>
+                             
+                             </div>
   </body>
 </html>
