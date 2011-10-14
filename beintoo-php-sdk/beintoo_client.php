@@ -64,18 +64,22 @@ class BeintooApiException extends Exception
 
 
 class BeintooRestClient {
-    const VERSION = '0.1b';
+    const APIHEADER_VERSION='X-BEINTOO-SDK-VERSION';
+    const VERSION = '1.2.0-php';
     // developer config
-    var $debug = TRUE;   // if TRUE the class becomes very verbose
+    var $debug = FALSE;   // if TRUE the class becomes very verbose
     var $manage_exception = FALSE;   // if FALSE the class throws exceptions
     //
-    var $restserver_url_sandbox = "https://sandbox-elb.beintoo.com/api/rest/";
-    var $restserver_url_production = "https://api.beintoo.com/api/rest/";
+    //var $restserver_url_sandbox = "https://api.beintoo.com/api/rest/";
+    //var $restserver_url_production = "https://api.beintoo.com/api/rest/";
+    var $sandbox=false;
     var $restserver_url = "https://api.beintoo.com/api/rest/";
     var $player_resource = "player";
     var $vgood_resource = "vgood";
     var $user_resource = "user";
     var $app_resource = "app";
+    var $achievement_resource = "achievement";
+
     var $apikey = NULL;
     public static $CURL_OPTS = array(
         CURLOPT_CONNECTTIMEOUT => 10,
@@ -90,7 +94,9 @@ class BeintooRestClient {
     function BeintooRestClient($apikey=NULL, $sandbox=false) {
         $this->apikey = $apikey;
         if (isset($sandbox) && $sandbox == true) {
-            $this->restserver_url = $this->restserver_url_sandbox;
+            //$this->restserver_url = $this->restserver_url_sandbox;
+            $this->sandbox=true;
+            
         }
     }
 
@@ -130,8 +136,13 @@ class BeintooRestClient {
         $all_headers = array_merge($headers, BeintooRestClient::$CURL_OPTS[CURLOPT_HTTPHEADER]);
 
         $all_headers[] = 'Content-type: application/x-www-form-urlencoded;charset=UTF-8';
+        $all_headers[] =  BeintooRestClient::APIHEADER_VERSION .": ".BeintooRestClient::VERSION;
         if (isset($gets)) {
             $url = $url . "?" . http_build_query($gets);
+        }
+
+        if ($this->sandbox) {
+            $all_headers[]='sandbox: true';
         }
         if ($this->debug) {
             var_dump($url);
@@ -158,6 +169,7 @@ class BeintooRestClient {
                         'error' => array(
                             'message' => curl_error($process),
                             'type' => 'CurlException',
+                            'content' => $result
                         ),
                     ));
             curl_close($process);
@@ -182,6 +194,9 @@ class BeintooRestClient {
         //$all_headers = array_merge($headers, $this->headers);
         $all_headers[] = 'Content-type: application/x-www-form-urlencoded';
         $data = http_build_query($data);
+        if ($this->sandbox) {
+            $all_headers[]='sandbox: true';
+        }
         if ($this->debug) {
             var_dump($url);
             var_dump($all_headers);
@@ -355,9 +370,15 @@ class BeintooRestClient {
 
             if (isset($lastScore) && $lastScore != NULL) {
                 $params_get["lastScore"] = $lastScore;
+                if ($lastScore==0) {
+                    $params_get["lastScore"]="0";
+                }
             }
             if (isset($balance) && $balance != NULL) {
                 $params_get["balance"] = $balance;
+                if ($balance == 0) {
+                    $params_get["balance"] = "0";
+                }
             }
 
             if (isset($latitude) && $latitude!=NULL ) {
@@ -369,7 +390,6 @@ class BeintooRestClient {
             if (isset($radius) && $radius!=NULL ) {
                 $params_get["radius"] = $radius;
             }
-            $params_get["language"] = 1;
 
             $reply = $this->_get($this->restserver_url . $this->player_resource . "/submitscore",
                             $params_get,
@@ -386,6 +406,7 @@ class BeintooRestClient {
         }
         return $reply;
     }
+    
     function vgood_getvgood_byguid_multiple($codeID, $guid, $latitude=NULL, $longitude=NULL, $radius=NULL, $rows=NULL, $ip_address=NULL) {
 
         try {
@@ -592,7 +613,7 @@ class BeintooRestClient {
     }
 
 
-    function beta_checkin_places($userExt, $latitude=NULL, $longitude=NULL, $radius=NULL, $onlyVgooded=true) {
+    /*function beta_checkin_places($userExt, $latitude=NULL, $longitude=NULL, $radius=NULL, $onlyVgooded=true) {
 
         try {
 
@@ -626,84 +647,64 @@ class BeintooRestClient {
         }
         return $reply;
     }
-
-    function render_vgood($vgood, $html=false) {
+*/
+    function render_vgood($vgood, $html=FALSE) {
         if ($html) {
             echo <<<EOT
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<style type="text/css">
-<!-- -->
-body {
-	background-color: #FFFFFF; /* Background color */
-	color: #4D4D4D; /* Foreground color used for text */
-	font-family: 'LucidaSansRegular';
-	font-size: 12px;
-	margin: 0; /* Amount of negative space around the outside of the body */
-	padding: 0; /* Amount of negative space around the inside of the body */
-}
-
-a {
-color : #A7A9AC ;
-font-family: 'LucidaSansRegular';
-
-}
-
-.r_title {
-font-weight: bold;
-font-size: 14px;
-
-font-family: 'LucidaSansRegular';
-
-}
-
-</style></head><body>
+<link rel="stylesheet" href="http://static.beintoo.com/pages/css/beintoo.css" type="text/css" />
+</head>
+<body>
 
 EOT;
+        } else {
+            echo '<link rel="stylesheet" href="popup.css" type="text/css" />';
+        }
+        if (strlen($vgood->description)>203) {
+            $description=substr($vgood->description,0,200)."...";
+        } else {
+                       $description=$vgood->description;
+ 
         }
         echo <<<EOT
-<div id="reward">
-<table id="prize">
-<tr>
-<td>
-EOT;
+        <div id="overlay-bx" class="overlay-bx">
+		<div class="popup-box">
+			<div class="inn1">
 
-        echo "<img width='50' height='50' src='" . $vgood->imageSmallUrl . "'>";
-        echo "</td><td>";
-        echo "<p class='r_title'>Congratulations! You won : " . $vgood->name . "</p><p class='description' >" . $vgood->description . "</p>";
-        echo "<table id='m_links' ><tr><td>";
-        if (isset($vgood->getRealURL))
-            echo "<a href='#' onclick='window.open(\"" . $vgood->getRealURL . "\",\"_blank\",\"width=320,height=600\");return false;' ><img src='http://static.beintoo.com/popup_img/get_coupon.png' /></a>";
-        echo "</td><td>";
-        if (isset($vgood->refuseURL))
-            echo "<a href='#' onclick='window.open(\"" . $vgood->refuseURL . "\",\"_blank\",\"width=320,height=600\");return false;' >Refuse</a>";
-        echo "</td><td>";
-//if (isset($vgood->showURL))
-//echo "<a href='#' onclick='window.open(\"".$vgood->showURL."\",\"_blank\",\"width=320,height=600\");return false;' >Show</a>";
-//echo "</td><td>";
-        if (isset($vgood->acceptURL))
-            echo "<a href='#' onclick='window.open(\"" . $vgood->acceptURL . "\",\"_blank\",\"width=320,height=600\");return false;' >Accept</a>";
-        echo "</td></tr></table>";
-
-        echo <<<EOT
-</td>
-</tr>
-<tr><td></td><td>Click on Show to see your prize and accept it. You will see it in your Beintoo profile. <br/> You can then decide to use it whenever you want , by clicking on Get It Real.</td></tr>
-</table>
-</div>
+                               <div class="inn2">
+					<h2 class="head-pop">Beintoo</h2>
+					<p>Congratulations, you got this reward: </p>
+					<img class="img-prod" src="$vgood->imageSmallUrl" alt="" />
+					<div class="bx-pop">
+						<h3>$vgood->name </h3>
+						<p class="tx1">$description</p>
+						<a class="botV" href="$vgood->getRealURL" ><span>Get Coupon</span></a>
+						<p class="tx2">Your prize is available FOR FREE on your Beintoo Profile.You can download your coupon whenever you want</p>
+					</div>
+				</div>
+                                <div style="text-align: right;padding-bottom: 15px;">
+                                <a href="#" class="close" onclick="document.getElementById('overlay-bx').style.display='none';">close</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                <br/>
+                                </div>
+                        </div>
 
 EOT;
 
+  
         if (isset($vgood->whoAlsoConverted)) {
-            echo"<br/><p class='r_title'>Who also got the coupon: </p><br/>";
-            echo "<table><tr>";
+            echo"<br/><p class='r_title'>Who also got the coupon: </p>";
+            echo "<div class='bx-pop'><table><tr>";
 
             foreach ($vgood->whoAlsoConverted as $key => $value) {
-                echo "<td>" . "<img src='" . $value->userimg . "' /><br/>" . "</td>";
-                echo "<td><table><tr><td>" . $value->name . "</td></tr><tr><td>" . $value->bedollars . "</td></tr></table></td>";
+                echo "<td>" . "<img src='" . $value->usersmallimg . "' /><br/>" . "</td>";
+                echo "<td><table><tr><td><p class='tx1'>" . $value->name . "</p></td></tr><tr><td><p class='tx1'>" . $value->bedollars . "</p></td></tr></table></td>";
             }
-            echo "</tr></table>";
+            echo "</tr></table></div>";
         }
+        
+        echo "</div></div>";
+
 
         if ($html)
             echo "</body></html>";
@@ -737,6 +738,91 @@ EOT;
         return $reply;
     }
 
+    
+     function achievement_get($guid=NULL) {
+      try {
+            if (isset($this->apikey) && $this->apikey!=NULL)
+                $params_header[] = 'apikey: ' . $this->apikey;
+            
+            if ( isset($guid) && $guid != NULL)
+                $params_header[] = 'guid: ' . $guid;
+       
+
+            $reply = $this->_get($this->restserver_url . $this->achievement_resource . "/",
+                            NULL,
+                            $params_header);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            error_log(var_export($e,true));
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }
+    /*
+     * returns an associative array with keys the id of achievements, it is simpler to use
+     */
+    function utils_achievements_associative_array($achievements_response) {
+        //////////////////////////////////////////////////////////
+        $output=array();
+        foreach ($achievements as $key=>$value) {
+            $str_debug.=print_r(strcmp($value->achievement->id , 'e0857cfd638bcd8dd3eae27fd0947121'),true);
+                $new_key=$value->achievement->id;
+            $output[$new_key]=$value;
+    
+        }
+        return $output;
+    }
+     
+    function achievement_update( $achievementExt, $guid, $percentage=NULL, $value=NULL, $increment=TRUE) {
+        try {
+            if (isset($this->apikey) && $this->apikey != NULL)
+                $params_header[] = 'apikey: ' . $this->apikey;
+            if (isset($guid) && $guid != NULL)
+                $params_header[] = 'guid: ' . $guid;
+
+             
+            if ($achievementExt == NULL || !isset($achievementExt)) {
+                $result['error_msg'] = "NO ACHIEVEMENTEXT";
+                throw new BeintooApiException($result);
+            }
+            if (!isset($guid) ||$guid == NULL) {
+                $result['error_msg'] = "NO guid";
+                throw new BeintooApiException($result);
+            }
+            if (isset($percentage) && $percentage != NULL) {
+                $params_get["percentage"] = $percentage;
+            }
+            if (isset($value) && $value != NULL) {
+                $params_get["value"] = $value;
+            }
+            if (!isset($params_get["value"]) && !isset($params_get["percentage"])) {
+                $result['error_msg'] = "YOU HAVE TO SET PERCENTAGE OR VALUE";
+                throw new BeintooApiException($result);
+            }
+            if (isset($increment) && $increment != NULL) {
+                $params_get["increment"] = $increment;
+            }
+            $reply = $this->_post($this->restserver_url . $this->achievement_resource . "/" . $achievementExt, $params_get, $params_header);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            error_log(var_export($e, true));
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }
+
+    
+    
 }
 
 ?>
