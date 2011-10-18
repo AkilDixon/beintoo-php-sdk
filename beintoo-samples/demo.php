@@ -125,6 +125,7 @@ try {
     }
     if (strcmp($action,"achievement_get")==0) {
         $response=$client->achievement_get($guid);
+        $response=$client->utils_achievements_associative_array($response);
     }
     if (strcmp($action,"achievement_update")==0) {
         $response=$client->achievement_update($_GET['achievementExt'], $guid, 

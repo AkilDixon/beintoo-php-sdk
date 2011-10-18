@@ -769,8 +769,7 @@ EOT;
     function utils_achievements_associative_array($achievements_response) {
         //////////////////////////////////////////////////////////
         $output=array();
-        foreach ($achievements as $key=>$value) {
-            $str_debug.=print_r(strcmp($value->achievement->id , 'e0857cfd638bcd8dd3eae27fd0947121'),true);
+        foreach ($achievements_response as $key=>$value) {
                 $new_key=$value->achievement->id;
             $output[$new_key]=$value;
     
