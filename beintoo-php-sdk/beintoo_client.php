@@ -65,7 +65,7 @@ class BeintooApiException extends Exception
 
 class BeintooRestClient {
     const APIHEADER_VERSION='X-BEINTOO-SDK-VERSION';
-    const VERSION = '1.2.0-php';
+    const VERSION = '1.2.1-php';
     // developer config
     var $debug = FALSE;   // if TRUE the class becomes very verbose
     var $manage_exception = FALSE;   // if FALSE the class throws exceptions
@@ -83,9 +83,10 @@ class BeintooRestClient {
     var $apikey = NULL;
     public static $CURL_OPTS = array(
         CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_RETURNTRANSFER => TRUE,
         CURLOPT_FOLLOWLOCATION => 1,
         CURLOPT_TIMEOUT => 60,
+        CURLOPT_VERBOSE => FALSE,
         CURLOPT_USERAGENT => 'beintoo-php-sdk-0.1',
         CURLOPT_HTTPHEADER => array('Accept: application/json'),
         CURLOPT_HEADER => 0
@@ -710,16 +711,29 @@ EOT;
             echo "</body></html>";
     }
 
-    function app_topscore($codeID=NULL, $rows=20) {
+    function app_topscore($codeID=NULL, $rows=20,$userExt=null,$kind='STANDARD') {
+        
+        // FRIENDS CLOSEST
         try {
             if (isset($this->apikey)  && $this->apikey!=NULL )
                 $params_header[] = 'apikey: ' . $this->apikey;
             if (isset($codeID))
                 $params_header[] = 'codeID: ' . $codeID;
+            if (isset($kind) && (strcmp($kind, 'STANDARD')!=0) && (!isset($userExt) || $userExt==null) ) {
+                $result['error_msg']="NO USEREXT , USEREXT is required if kind != STANDARD";
+                throw new BeintooApiException($result);
+
+            }
+             if (!isset($userExt) || $userExt == NULL) {
+                $result['error_msg']="NO USEREXT";
+                throw new BeintooApiException($result);
+                } else {
+                  $params_header[] = 'userExt: ' . $userExt;
+  
+                }
 
 
-
-            $reply = $this->_get($this->restserver_url . $this->app_resource . "/topscore",
+            $reply = $this->_get($this->restserver_url . $this->app_resource . "/leaderboard",
                             $params_get,
                             $params_header
             );

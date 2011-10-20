@@ -37,6 +37,7 @@ if (isset($_GET['userExt'])) {
     $response = $client->player_login(null, $_GET['userExt']);
     if (isset($response->user))
         $_SESSION['userExt'] = $response->user;
+        $guid = $response->guid;
 }
 
 if (isset($guid) && !isset($_GET['userExt'])) {
@@ -132,8 +133,7 @@ try {
                 $_GET['percentage'], $_GET['value'], $_GET['increment']);
     }
     if (strcmp($action,"app_topscore")==0) {
-        $response=$client->app_topscore($guid,$_GET['rows']);
-
+        $response=$client->app_topscore($guid,$_GET['rows'],$userExt,$_GET['kind']);
     }
     if (strcmp($action,"user_setuser")==0) {
         $response=$client->user_setuser($_GET['guid'], $_GET['email'],
@@ -332,7 +332,7 @@ try {
       <div class="box"> <h3>player_submitscore</h3><br />
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         Latitude: <input   type="text" name="latitude" /><br /><br />
         Longitude: <input   type="text" name="longitude" /><br /><br />
         Radius: <input    type="text" name="radius" value="1000" /><br /><br />
@@ -351,7 +351,7 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         Latitude: <input id="l1" type="text" name="latitude" /><br /><br />
         Longitude: <input id="l2"  type="text" name="longitude" /><br /><br />
         Radius: <input id="l3"  type="text" name="radius" value="1000" /><br /><br />
@@ -368,7 +368,7 @@ try {
   
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         Latitude: <input id="lu1" type="text" name="latitude" /><br /><br />
         Longitude: <input id="lu2"  type="text" name="longitude" /><br /><br />
         Radius: <input id="l3"  type="text" name="radius" value="1000" /><br /><br />
@@ -387,7 +387,7 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         Player: <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
         <input type="submit" name="action" value="player_getplayer_byguid"  /><br /><br />
@@ -398,9 +398,11 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         codeID: <input type="text" name="codeID" value="<?php echo $codeID; ?>" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
+        User: <input type="text" name="userExt" value="<?php if (isset($_SESSION['userExt'])) echo  $_SESSION['userExt']->id; ?>" /><br /><br />
+        kind: <input type="text" name="kind" value="STANDARD" /><br /><br />
         rows: <input type="text" name="rows" value="20" /><br /><br />
         <input type="submit" name="action" value="app_topscore"  /><br /><br />
     </form>
@@ -410,7 +412,7 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         Player: <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
               User: <input type="text" name="userExt" value="<?php if (isset($_SESSION['userExt'])) echo  $_SESSION['userExt']->id; ?>" /><br /><br />
@@ -423,7 +425,7 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         Player: <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
 
@@ -435,7 +437,7 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         Player: <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
         achievement_id: <input   type="text" name="achievementExt" value="" /><br /><br />
@@ -451,7 +453,7 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
         apikey: <input type="text" name="apikey" value="<?php echo $apikey; ?>" /><br /><br />
         Player(guid): <input type="text" name="guid" value="<?php echo $guid; ?>" /><br /><br />
         email: <input   type="text" name="email"  /><br /><br />
@@ -461,8 +463,8 @@ try {
         name: <input   type="text" name="name"  /><br /><br />
         password: <input   type="text" name="password"  /><br /><br />
         imageURL: <input   type="text" name="imageURL"  /><br /><br />
-        sendEmail: <input type="checkbox" name="sendGreetingsEmail" value="1" checked /><br /><br />
-        gender: <input type="radio" name="gender" value="1" /> Male    <input type="radio" name="gender" value="2" checked /> Female <input type="radio" name="gender" value="" /> None<br /><br />
+        sendEmail: <input type="checkbox" name="sendGreetingsEmail" value="1" checked="1" /><br /><br />
+        gender: <input type="radio" name="gender" value="1" /> Male    <input type="radio" name="gender" value="2" checked="1" /> Female <input type="radio" name="gender" value="" /> None<br /><br />
 
         <input type="submit" name="action" value="user_setuser"  /><br /><br />
     </form>
@@ -473,7 +475,7 @@ try {
 
     <form name="input" action="demo.php" method="get">
         <br /><br />
-        Sandbox: <input type="checkbox" name="sandbox" value="1" checked /><br /><br />
+        Sandbox: <input type="checkbox" name="sandbox" value="1" checked="1" /><br /><br />
 
         <input type="submit" name="action" value="player_login_exp"  /><br /><br />
     </form>
