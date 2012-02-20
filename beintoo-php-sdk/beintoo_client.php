@@ -64,19 +64,20 @@ class BeintooApiException extends Exception
 
 
 class BeintooRestClient {
-    const APIHEADER_VERSION='X-BEINTOO-SDK-VERSION';
-    const VERSION = '1.2.1-php';
+    const APIHEADER_VERSION ='X-BEINTOO-SDK-VERSION';
+    const VERSION = '1.2.2-php';
     // developer config
     var $debug = FALSE;   // if TRUE the class becomes very verbose
     var $manage_exception = FALSE;   // if FALSE the class throws exceptions
-    //
-    //var $restserver_url_sandbox = "https://api.beintoo.com/api/rest/";
-    //var $restserver_url_production = "https://api.beintoo.com/api/rest/";
-    var $sandbox=false;
+    
+	//
+    
+    var $sandbox = false;
     var $restserver_url = "https://api.beintoo.com/api/rest/";
     var $player_resource = "player";
     var $vgood_resource = "vgood";
     var $user_resource = "user";
+    var $shorten_resource = "shorten";
     var $app_resource = "app";
     var $achievement_resource = "achievement";
 
@@ -220,7 +221,7 @@ class BeintooRestClient {
      * @param <type> $userExt the id of beintoo user if the app have it in its db
      * @return <type> Player object
      */
-    function player_login($guid, $userExt, $publicname=NULL) {
+    function player_login($guid, $userExt ) {
         try {
             if (isset($this->apikey) && $this->apikey != NULL)
                 $params_header[] = 'apikey: ' . $this->apikey;
@@ -228,11 +229,7 @@ class BeintooRestClient {
                 $params_header[] = 'userExt: ' . $userExt;
             if ( isset($guid) && $guid != NULL)
                 $params_header[] = 'guid: ' . $guid;
-            // TODO move this in parameters
-            $params_get["language"] = 1;
-            if (isset($publicname)) {
-                $params_get["publicname"] = $publicname;
-            }
+ 
             $reply = $this->_get($this->restserver_url . $this->player_resource . "/login",
                             $params_get,
                             $params_header
@@ -313,7 +310,10 @@ class BeintooRestClient {
                 $params_header[] = 'apikey: ' . $this->apikey;
             if (isset($guid) && $guid != NULL)
                 $params_header[] = 'guid: ' . $guid;
-
+            if (!isset($email) || $email == NULL) {
+                $result['error_msg']="email address required.";
+                throw new BeintooApiException($result);
+            }
 
             if (isset($email) && $email != NULL)
                 $params_get["email"] = $email;
@@ -323,8 +323,15 @@ class BeintooRestClient {
                 $params_get["country"] = $country;
             if (isset($gender) && $gender != NULL)
                 $params_get["gender"] = $gender;
-            if (isset($nickname) && $nickname != NULL)
+            if (isset($nickname) && $nickname != NULL) {
                 $params_get["nickname"] = $nickname;
+            } else {
+                $temp=explode("@", $email);
+                if (isset($temp[0]) && $temp[0] != NULL) {
+                    // creating a default one
+                    $params_get["nickname"] = $temp[0];
+                }
+            } 
             if (isset($name) && $name != NULL)
                 $params_get["name"] = $name;
             if (isset($sendGreetingsEmail) && $sendGreetingsEmail == FALSE)
@@ -354,7 +361,47 @@ class BeintooRestClient {
         }
         return $reply;
     }
+    
 
+    function user_shorten($codeID,$guid,$originalUrl) {
+        try {
+            if ($this->apikey != NULL)
+                $params_header[] = 'apikey: ' . $this->apikey;
+            if (isset($codeID) && $codeID!=NULL)
+                $params_header[] = 'codeID: ' . $codeID;
+            if (!isset($originalUrl) || $originalUrl == NULL) {
+                $result['error_msg']="NO URL to be shortened";
+                throw new BeintooApiException($result);
+                }
+            if ((!isset($guid) || $guid == NULL)  ){
+                $result['error_msg']="NO Guid Provided";
+                throw new BeintooApiException($result);
+                }
+            if (isset($guid) && $guid != NULL)
+                $params_header[] = 'guid: ' . $guid;
+            if (isset($originalUrl) && $originalUrl != NULL)
+                $params_get["url"] = $originalUrl;
+
+            $reply = $this->_post($this->restserver_url . $this->shorten_resource ,
+                            $params_get,
+                            $params_header
+            );
+            if ($this->debug) {
+                var_dump($reply);
+            }
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }
+
+    
     function player_submitscore($codeID, $guid, $lastScore=NULL, $balance=NULL, $latitude=NULL, $longitude=NULL, $radius=NULL,$ip_address=NULL) {
 
 
@@ -722,16 +769,10 @@ EOT;
             if (isset($kind) && (strcmp($kind, 'STANDARD')!=0) && (!isset($userExt) || $userExt==null) ) {
                 $result['error_msg']="NO USEREXT , USEREXT is required if kind != STANDARD";
                 throw new BeintooApiException($result);
-
             }
-             if (!isset($userExt) || $userExt == NULL) {
-                $result['error_msg']="NO USEREXT";
-                throw new BeintooApiException($result);
-                } else {
+            if (isset($userExt) && $userExt != NULL) {
                   $params_header[] = 'userExt: ' . $userExt;
-  
-                }
-
+            }
 
             $reply = $this->_get($this->restserver_url . $this->app_resource . "/leaderboard",
                             $params_get,
