@@ -758,6 +758,31 @@ EOT;
             echo "</body></html>";
     }
 
+	function render_marketplace($guid, $lat=NULL, $long=NULL, $html, $position, $height) {
+		$url_frame = 'http://www.beintoo.com/m/marketplace.html?apikey='.$this->apikey.'&guid='.$guid;
+		if ($html == true) {
+			echo "
+				<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">
+				<head>";
+		}
+		echo"	<link href='http://widgets.beintoo.com/marketplace/iframe.css' media='screen' rel='stylesheet' type='text/css' > </link>
+				<script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js' > </script>
+				<script type='text/javascript' src='http://widgets.beintoo.com/marketplace/beintoo_marketplace.js' >  </script>";
+		if ($html == true) {
+			echo "
+				</head> <body> "; 
+		}		
+				
+		echo"	<script type='text/javascript'>
+					Beintoo.iframe_url = '$url_frame';
+					Beintoo.position = '$position';
+				</script> ";
+		
+		if ($html == true) {
+			echo "</body></html>";
+		}
+	}
+	
     function app_topscore($codeID=NULL, $rows=20,$userExt=null,$kind='STANDARD') {
         
         // FRIENDS CLOSEST
