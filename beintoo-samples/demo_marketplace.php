@@ -19,13 +19,16 @@
 	$client = new BeintooRestClient($apikey);
 	
 	//call the Marketplace resource, with following parameters:
-	// [string] guid       <---- current player's guid
-	// [float]  latitute   <---- (optional, can be null)
-	// [float]  logitude   <---- (optional, can be null)
-	// [bool]   needs html <---- provide true to receive a new tagged html page with marketplace, 
-	// 					         else retrive false to obtain only Marketplace object
-	// [string] position   <---- choose where to show Marketplace: on left or right screen side.
-	$client->render_marketplace($guid, null, null, false, "right");
+	// [string] guid       				<---- current player's guid
+	// [float]  latitute   				<---- (optional, can be null)
+	// [float]  logitude   				<---- (optional, can be null)
+	// [bool]   needs html 				<---- set true to receive a new tagged html page with marketplace, 
+	// 					         				else set false to obtain only Marketplace object
+	// [bool]   needs jquery import 	<---- set true if you need jQuery to be imported by Beintoo, 
+	// 					         			else set false if you had already done it for your purposes
+	// [string] position   				<---- choose where to show Marketplace: on left or right screen side.
+	
+	$client->render_marketplace($guid, null, null, false, true, "right");
 ?>
 
 </body>
