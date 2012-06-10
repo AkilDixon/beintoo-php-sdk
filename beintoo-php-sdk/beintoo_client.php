@@ -788,7 +788,8 @@ EOT;
             echo "</body></html>";
         }
     
-	
+	}
+    
     function app_topscore($codeID=NULL, $rows=20,$userExt=null,$kind='STANDARD') {
         
         // FRIENDS CLOSEST
@@ -908,6 +909,5 @@ EOT;
 
     
     
-}
 }
 ?>
