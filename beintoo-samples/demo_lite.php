@@ -209,7 +209,6 @@
 			$guid = NULL;
 		    if (isset($_GET['guid']))
 		         $guid=$_GET['guid'];
-		    	echo "dentro";
 			try {
 					/* $response= */$client->render_marketplace($guid, NULL,NULL,false, true, "left");
 			    } catch (Exception $e ) {
