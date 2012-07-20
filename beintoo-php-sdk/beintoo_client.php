@@ -533,7 +533,7 @@ class BeintooRestClient {
     }
 
 
-    function vgood_getvgood_byguid($codeID, $guid, $latitude=NULL, $longitude=NULL, $radius=NULL, $ip_address=NULL) {
+    function vgood_getvgood_byguid($codeID, $guid, $latitude=NULL, $longitude=NULL, $radius=NULL, $ip_address=NUL, $allowBanner=NULL) {
 
         try {
 
@@ -559,6 +559,10 @@ class BeintooRestClient {
             if (isset($radius) && $radius!=NULL ) {
                 $params_get["radius"] = $radius;
             }
+			if (isset($allowBanner) && $allowBanner!=NULL ) {
+                $params_get["allowBanner"] = $allowBanner;
+            }
+			
             $params_get["language"] = 1;
             //var_dump($params_get);
             $reply = $this->_get($this->restserver_url . $this->vgood_resource . "/get/byguid/" . $guid,
@@ -790,7 +794,45 @@ EOT;
     
 	}
     
+    
+    //deprecated
     function app_topscore($codeID=NULL, $rows=20,$userExt=null,$kind='STANDARD') {
+        
+        // FRIENDS CLOSEST
+        try {
+            if (isset($this->apikey)  && $this->apikey!=NULL )
+                $params_header[] = 'apikey: ' . $this->apikey;
+            if (isset($codeID))
+                $params_header[] = 'codeID: ' . $codeID;
+            if (isset($kind) && (strcmp($kind, 'STANDARD')!=0) && (!isset($userExt) || $userExt==null) ) {
+                $result['error_msg']="NO USEREXT , USEREXT is required if kind != STANDARD";
+                throw new BeintooApiException($result);
+            }
+            if (isset($userExt) && $userExt != NULL) {
+                  $params_header[] = 'userExt: ' . $userExt;
+            }
+
+            $reply = $this->_get($this->restserver_url . $this->app_resource . "/leaderboard",
+                            $params_get,
+                            $params_header
+            );
+            if ($this->debug) {
+                var_dump($reply);
+            }
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }
+
+
+	function app_leaderboard($codeID=NULL, $rows=20,$userExt=null,$kind='STANDARD') {
         
         // FRIENDS CLOSEST
         try {
