@@ -949,7 +949,28 @@ EOT;
         return $reply;
     }
 
-    
-    
+    function give_bedollars($userExt, $amount) {
+        try {
+
+            if (isset($this->apikey))
+                $params_header[] = 'apikey: ' . $this->apikey;
+            
+            $params_post["amount"] = $amount;
+
+            $reply = $this->_post($this->restserver_url . $this->app_resource . "/givebedollars/".userExt,
+                            $params_post,
+                            $params_header
+            );
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    }    
 }
 ?>
