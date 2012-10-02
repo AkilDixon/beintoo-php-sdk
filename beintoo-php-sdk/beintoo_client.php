@@ -957,7 +957,7 @@ EOT;
             
             $params_post["amount"] = $amount;
 
-            $reply = $this->_post($this->restserver_url . $this->app_resource . "/givebedollars/".userExt,
+            $reply = $this->_post($this->restserver_url . $this->app_resource . "/givebedollars/".$userExt,
                             $params_post,
                             $params_header
             );
