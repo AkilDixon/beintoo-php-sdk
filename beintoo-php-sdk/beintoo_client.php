@@ -202,6 +202,7 @@ class BeintooRestClient {
         if ($this->debug) {
             var_dump($url);
             var_dump($all_headers);
+            var_dump($data);
         }
         $process = curl_init($url);
         curl_setopt_array($process, BeintooRestClient::$CURL_OPTS);
@@ -304,7 +305,7 @@ class BeintooRestClient {
         return $reply;
     }
 
-    function user_setuser($guid, $email, $address, $country, $gender, $nickname, $name,$password,$sendGreetingsEmail,$imageURL,$language) {
+    function user_setuser($guid, $email, $address, $country, $gender, $nickname, $name,$password,$sendGreetingsEmail,$imageURL,$language, $skipOnExists = "false") {
         try {
             if ($this->apikey != NULL)
                 $params_header[] = 'apikey: ' . $this->apikey;
@@ -342,7 +343,9 @@ class BeintooRestClient {
                 $params_get["language"] = $language;
             if (isset($imageURL) && $imageURL != NULL)
                 $params_get["imageURL"] = $imageURL;
-
+            if(isset($skipOnExists))
+                $params_get["skipOnExists"] = $skipOnExists;
+                
             $reply = $this->_post($this->restserver_url . $this->user_resource . "/set",
                             $params_get,
                             $params_header
