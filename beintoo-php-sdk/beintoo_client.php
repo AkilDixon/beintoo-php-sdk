@@ -231,7 +231,7 @@ class BeintooRestClient {
                 $params_header[] = 'guid: ' . $guid;
  
             $reply = $this->_get($this->restserver_url . $this->player_resource . "/login",
-                            $params_get,
+                            NULL,
                             $params_header
             );
             if ($this->debug) {
