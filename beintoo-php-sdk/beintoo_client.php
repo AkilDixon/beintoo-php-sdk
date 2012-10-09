@@ -79,6 +79,7 @@ class BeintooRestClient {
     var $user_resource = "user";
     var $shorten_resource = "shorten";
     var $app_resource = "app";
+    var $secure_resource = "secure";
     var $achievement_resource = "achievement";
 
     var $apikey = NULL;
@@ -974,6 +975,41 @@ EOT;
             }
         }
         return $reply;
-    }    
+    }   
+
+    function redeem_bedollars($access_token, $amount){
+        $amount = ($amount * (-1));
+        return $this->bedollars_transaction($access_token, $amount);
+    }
+    
+    function add_bedollars($access_token, $amount){
+        return $this->bedollars_transaction($access_token, $amount);
+    }
+
+    function bedollars_transaction($access_token, $amount) {
+        try {
+            if (isset($this->apikey))
+                $params_header[] = 'apikey: ' . $this->apikey;
+            
+            if(isset($access_token))
+                $params_header[] = 'Authorization: Bearer '.$access_token;
+
+            $params_post["amount"] = $amount;
+
+            $reply = $this->_post($this->restserver_url . $this->secure_resource . "/bedollars/",
+                            $params_post,
+                            $params_header
+            );
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            if ($this->debug) {
+                var_dump($e);
+            }
+            if (!$this->manage_exception) {
+                throw $e;
+            }
+        }
+        return $reply;
+    } 
 }
 ?>
